@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import pygame, sys
+from random import randint
 
 pygame.init()
 
@@ -79,6 +80,8 @@ class Platform(pygame.sprite.Sprite):
 
 class Barrel(pygame.sprite.Sprite):
 
+    speed_x = 1
+    speed_y = 2
     def __init__(self, x_pos, y_pos):
         pygame.sprite.Sprite.__init__(self)
         # create brown barrel at specified position
@@ -87,6 +90,33 @@ class Barrel(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x_pos
         self.rect.y = y_pos
+
+        self.speed_x = randint(3, 5)
+
+
+    def bounce(self, force, platforms):
+        # check if hits floor
+        hit_list = pygame.sprite.spritecollide(self, platforms, False)
+        if hit_list:
+            hit = hit_list[0]   # hit platform
+            # used to prevent dragging of barrels against platform
+            if self.rect.y > hit.rect.y: # top of barrel hits platform
+                self.rect.top = hit.rect.bottom
+            else:   # bottom of barrel hits platform
+                self.rect.bottom = hit.rect.top
+            self.speed_y = -self.speed_y
+
+    def move(self):
+        self.rect.x -= self.speed_x
+        self.rect.y += self.speed_y
+
+    def spawn(self, row):
+        self.rect.x = WIN_WIDTH / 1.25
+        self.rect.y = WIN_HEIGHT / (row + 1)
+
+    def destroy(self):
+        if self.rect.x < WIN_WIDTH / 5:
+            self.kill()
 
 def create_platforms(platforms_list, all_sprites):
     p_width, p_height = 1000, 50
@@ -110,6 +140,20 @@ def create_platforms(platforms_list, all_sprites):
     platforms_list.add(platform)
     all_sprites.add(platform)
 
+def move_barrels(barrels_list):
+    ''' have barrels roll '''
+    for barrel in barrels_list:
+        barrel.move()
+
+def bounce_barrels(barrels_list, platforms):
+    ''' Bounce barrels if it collides with platforms '''
+    for barrel in barrels_list:
+        barrel.bounce(10, platforms)
+
+def destroy_barrels(barrels_list):
+    ''' destroys barrels after it crosses a certain point '''
+    for barrel in barrels_list:
+        barrel.destroy()
 # game configuration
 screen = pygame.display.set_mode([0, 0], pygame.FULLSCREEN)
 SCREEN_SIZE = WIN_WIDTH, WIN_HEIGHT = pygame.display.get_surface().get_size()
@@ -130,18 +174,22 @@ all_sprites.add(player)
 # barrel initialization
 barrels_list = pygame.sprite.Group()
 barrel = Barrel(WIN_WIDTH / 3, WIN_HEIGHT / 2)
+barrel.spawn(1.5)
 barrels_list.add(barrel)
 all_sprites.add(barrel)
 
 # barrel initialization
 barrel = Barrel(WIN_WIDTH / 5, WIN_HEIGHT / 2)
+barrel.spawn(0.5)
 barrels_list.add(barrel)
 all_sprites.add(barrel)
 
 # barrel initialization
 barrel = Barrel(WIN_WIDTH / 4, WIN_HEIGHT / 2)
+barrel.spawn(3)
 barrels_list.add(barrel)
 all_sprites.add(barrel)
+
 
 while True:
     for event in pygame.event.get():
@@ -151,6 +199,9 @@ while True:
             if event.key == pygame.K_ESCAPE: sys.exit(0)  # quit game
 
 
+    move_barrels(barrels_list)
+    bounce_barrels(barrels_list, platforms_list)
+    destroy_barrels(barrels_list)
 
     player.check_collisions(platforms_list, barrels_list)
 
