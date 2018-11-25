@@ -7,6 +7,7 @@ class Player(pygame.sprite.Sprite):
 
     move_x = 20
     move_y = 20
+    health = 3
 
     def __init__(self, x_pos, y_pos):
         pygame.sprite.Sprite.__init__(self)
@@ -48,8 +49,7 @@ class Player(pygame.sprite.Sprite):
     def jump(self):
         pass
 
-    def check_collisions(self, platforms, enemies):
-
+    def check_collisions(self, platforms, barrels):
         # check for collision with platforms
         hit_list = pygame.sprite.spritecollide(self, platforms, False)
         for hit in hit_list:
@@ -59,6 +59,12 @@ class Player(pygame.sprite.Sprite):
                 self.rect.top = hit.rect.bottom # TODO: hiting side moves player to top or bottom
             else:
                 self.rect.bottom = hit.rect.top
+        # check if barrel has hit player
+        hit_list = pygame.sprite.spritecollide(self, barrels, True)
+        print self.health
+        if hit_list:
+            self.health -= 1
+            if self.health <= 0: self.kill()  # destroy player if health == 0 GAMEOVER
 
 class Platform(pygame.sprite.Sprite):
 
@@ -72,7 +78,15 @@ class Platform(pygame.sprite.Sprite):
         self.rect.y = y_pos
 
 class Barrel(pygame.sprite.Sprite):
-    pass
+
+    def __init__(self, x_pos, y_pos):
+        pygame.sprite.Sprite.__init__(self)
+        # create brown barrel at specified position
+        self.image = pygame.Surface([30, 18])
+        self.image.fill([160,82,45])
+        self.rect = self.image.get_rect()
+        self.rect.x = x_pos
+        self.rect.y = y_pos
 
 def create_platforms(platforms_list, all_sprites):
     p_width, p_height = 1000, 50
@@ -98,9 +112,10 @@ def create_platforms(platforms_list, all_sprites):
 
 # game configuration
 screen = pygame.display.set_mode([0, 0], pygame.FULLSCREEN)
+SCREEN_SIZE = WIN_WIDTH, WIN_HEIGHT = pygame.display.get_surface().get_size()
 pygame.display.set_caption("GAME")
 clock = pygame.time.Clock()
-SCREEN_SIZE = WIN_WIDTH, WIN_HEIGHT = pygame.display.get_surface().get_size()
+FPS = 60
 # maintains list of sprites to be drawn
 all_sprites = pygame.sprite.Group()
 
@@ -112,6 +127,22 @@ create_platforms(platforms_list, all_sprites)
 player = Player(WIN_WIDTH / 2, WIN_HEIGHT / 2)
 all_sprites.add(player)
 
+# barrel initialization
+barrels_list = pygame.sprite.Group()
+barrel = Barrel(WIN_WIDTH / 3, WIN_HEIGHT / 2)
+barrels_list.add(barrel)
+all_sprites.add(barrel)
+
+# barrel initialization
+barrel = Barrel(WIN_WIDTH / 5, WIN_HEIGHT / 2)
+barrels_list.add(barrel)
+all_sprites.add(barrel)
+
+# barrel initialization
+barrel = Barrel(WIN_WIDTH / 4, WIN_HEIGHT / 2)
+barrels_list.add(barrel)
+all_sprites.add(barrel)
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT: sys.exit(0)
@@ -119,11 +150,13 @@ while True:
             player.move(event)  # handle user movement
             if event.key == pygame.K_ESCAPE: sys.exit(0)  # quit game
 
-    player.check_collisions(platforms_list, [])
+
+
+    player.check_collisions(platforms_list, barrels_list)
 
     screen.fill((0, 0, 0))      # erase all content
     all_sprites.draw(screen)    # draw all sprites on screen
     pygame.display.flip()       # update display
-    clock.tick(60)              # FPS 60
+    clock.tick(FPS)              # FPS
 
 pygame.quit()
